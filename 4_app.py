@@ -76,7 +76,7 @@ def predict():
         predicted_class_idx = np.argmax(prediction)
         confidence = float(np.max(prediction))
         
-        if confidence > 0.6:
+        if confidence > 0.25:
             predicted_class = CLASSES[predicted_class_idx]
             return jsonify({
                 'prediction': predicted_class,
