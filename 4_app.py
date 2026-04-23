@@ -75,23 +75,19 @@ def predict():
         prediction = model.predict(reshaped_roi, verbose=0)
         predicted_class_idx = np.argmax(prediction)
         confidence = float(np.max(prediction))
+                prediction = model.predict(reshaped_roi, verbose=0)
+        predicted_class_idx = np.argmax(prediction)
+        confidence = float(np.max(prediction))
         
-        if confidence > 0.25:
-            predicted_class = CLASSES[predicted_class_idx]
-            return jsonify({
-                'prediction': predicted_class,
-                'confidence': f"{confidence * 100:.1f}%"
-            })
-        else:
-            return jsonify({
-                'prediction': 'Waiting...',
-                'confidence': '0%'
-            })
-            
+        predicted_class = CLASSES[predicted_class_idx]
+        return jsonify({
+            'prediction': predicted_class,
+            'confidence': f"{confidence * 100:.1f}%"
+        })
+        
     except Exception as e:
         print("Prediction Error:", e)
         return jsonify({'error': str(e)}), 500
 
-if __name__ == "__main__":
-    # Use host='0.0.0.0' so it is accessible on local network/internet
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+       
