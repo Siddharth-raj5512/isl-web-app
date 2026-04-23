@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Sign Language Recognition System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #1e1b4b 100%);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            padding: 2rem 0;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            margin: 0;
+            font-weight: 800;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            margin: 0.5rem 0 0 0;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            width: 90%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .video-container {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .video-container h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            align-self: flex-start;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Mirror the video so it feels natural */
+        #webcam {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        /* Overlay canvas for drawing the ROI box */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .prediction-panel {
+            flex: 0.4;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .prediction-text {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--success);
+            margin: 1rem 0;
+            text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .confidence-meter {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .instructions {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .instructions ul {
+            padding-left: 1.5rem;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            align-self: flex-start;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        #error-msg {
+            color: #ef4444;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ISL Recognition Engine</h1>
+        <p class="subtitle">Deep Learning Powered Real-Time Translation</p>
+    </header>
+
+    <div class="main-container">
+        
+        <div class="video-container">
+            <div class="live-indicator"><div class="live-dot"></div> LIVE WEBCAM</div>
+            <div class="video-wrapper">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="overlay"></canvas>
+            </div>
+            <div id="error-msg"></div>
+            <!-- Hidden canvas to grab actual frames for the CNN -->
+            <canvas id="capture-canvas" style="display: none;"></canvas>
+        </div>
+
+        <div class="prediction-panel">
+            
+            <div class="card">
+                <h3>Detected Sign</h3>
+                <div class="prediction-text" id="pred-text">--</div>
+                <div style="width: 100%; text-align: left; margin-top: 1rem; color: #94a3b8; font-size: 0.8rem;">Confidence Score</div>
+                <div class="confidence-meter">
+                    <div class="confidence-fill" id="conf-fill"></div>
+                </div>
+                <div id="conf-text" style="margin-top: 0.5rem; font-weight: bold; color: #3b82f6;">0%</div>
+            </div>
+
+            <div class="card" style="align-items: flex-start;">
+                <h3>Instructions</h3>
+                <div class="instructions">
+                    <ul>
+                        <li>Ensure you are in a well-lit room.</li>
+                        <li>Position yourself so your hand aligns inside the blue bounding box.</li>
+                        <li>Hold the sign steady for optimal recognition.</li>
+                        <li>Supported Signs: <strong>A, B, C, Hello, Help, Thank You</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const overlay = document.getElementById('overlay');
+        const overlayCtx = overlay.getContext('2d');
+        const captureCanvas = document.getElementById('capture-canvas');
+        const captureCtx = captureCanvas.getContext('2d');
+        const errorMsg = document.getElementById('error-msg');
+        
+        const predEl = document.getElementById('pred-text');
+        const confFill = document.getElementById('conf-fill');
+        const confText = document.getElementById('conf-text');
+
+        // Start webcam
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 } 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                errorMsg.innerText = "Error accessing webcam. Please allow camera permissions.";
+                console.error("Webcam Error:", err);
+            }
+        }
+
+        // Draw ROI box on the overlay canvas
+        function drawOverlay() {
+            // Match canvas size to actual video size
+            overlay.width = video.clientWidth;
+            overlay.height = video.clientHeight;
+            
+            // Calculate scale based on standard 640x480 resolution where we trained
+            const scaleX = overlay.width / 640;
+            const scaleY = overlay.height / 480;
+            
+            overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+            
+            // Draw Blue ROI Box (Original coords: 300, 100, width: 250, height: 250)
+            // Wait, the video is CSS mirrored (transform: scaleX(-1)), so visually the left 
+            // is actually the right. 
+            // Because both the video is CSS-mirrored AND the canvas is mirrored before sending, 
+            // the coordinates actually map 1:1 visually. 
+            // Python crops at X=300. We should draw the box at X=300.
+            const boxX = 300 * scaleX;
+            const boxY = 100 * scaleY;
+            const boxW = 250 * scaleX;
+            const boxH = 250 * scaleY;
+
+            overlayCtx.strokeStyle = "#3b82f6"; // Blue
+            overlayCtx.lineWidth = 3;
+            overlayCtx.strokeRect(boxX, boxY, boxW, boxH);
+            
+            // Add a small label
+            overlayCtx.fillStyle = "#3b82f6";
+            overlayCtx.font = "14px Inter";
+            overlayCtx.fillText("Place Hand Here", boxX, boxY - 5);
+            
+            requestAnimationFrame(drawOverlay);
+        }
+
+        video.addEventListener('play', () => {
+            // Set capture canvas size strictly to 640x480 so ROI cropping in Python works perfectly
+            captureCanvas.width = 640;
+            captureCanvas.height = 480;
+            drawOverlay();
+            startPredictionLoop();
+        });
+
+        // Loop to capture frames and send to server
+        async function startPredictionLoop() {
+            if (video.paused || video.ended) return;
+
+            // Draw video to capture canvas. We must mirror it here so Python gets the mirrored frame!
+            // This is identical to cv2.flip(frame, 1)
+            captureCtx.save();
+            captureCtx.translate(captureCanvas.width, 0);
+            captureCtx.scale(-1, 1);
+            captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+            captureCtx.restore();
+
+            // Convert to base64 JPEG
+            const dataURL = captureCanvas.toDataURL('image/jpeg', 0.8);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        predEl.innerText = "Error";
+                        errorMsg.innerText = data.error;
+                    } else {
+                        predEl.innerText = data.prediction;
+                        
+                        // UI color change based on state
+                        if (data.prediction === "Waiting..." || data.prediction === "--") {
+                            predEl.style.color = "#94a3b8";
+                            predEl.style.textShadow = "none";
+                        } else {
+                            predEl.style.color = "#10b981";
+                            predEl.style.textShadow = "0 0 20px rgba(16, 185, 129, 0.4)";
+                        }
+
+                        confText.innerText = data.confidence;
+                        confFill.style.width = data.confidence;
+                        errorMsg.innerText = "";
+                    }
+                }
+            } catch (err) {
+                console.error("Prediction fetch error:", err);
+            }
+
+            // Wait 250ms before next frame to avoid spamming server
+            setTimeout(startPredictionLoop, 250);
+        }
+
+        // Initialize
+        startWebcam();
+
+    </script>
+</body>
+</html>
